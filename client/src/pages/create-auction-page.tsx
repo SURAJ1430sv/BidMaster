@@ -30,8 +30,19 @@ const createAuctionFormSchema = insertAuctionSchema.omit({
   endTime: true,
   sellerId: true 
 }).extend({
-  endDate: z.string().min(1, { message: "End date is required" }),
-  endTime: z.string().min(1, { message: "End time is required" }),
+  endDate: z.string().min(1, { message: "End date is required" })
+    .refine(date => {
+      try {
+        // Check if it's a valid date format
+        return !isNaN(new Date(`${date}T00:00:00`).getTime());
+      } catch {
+        return false;
+      }
+    }, { message: "Please enter a valid date in YYYY-MM-DD format" }),
+  endTime: z.string().min(1, { message: "End time is required" })
+    .refine(time => /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time), {
+      message: "Please enter a valid time in HH:MM format"
+    }),
 });
 
 type CreateAuctionFormData = Omit<InsertAuction, "endTime" | "sellerId"> & {
@@ -74,6 +85,9 @@ export default function CreateAuctionPage() {
   const createAuctionMutation = useMutation({
     mutationFn: async (data: CreateAuctionFormData) => {
       try {
+        // Log the form data for debugging
+        console.log("Form data:", data);
+        
         // Combine date and time to create a complete endTime
         const { endDate, endTime, ...auctionData } = data;
         
@@ -82,8 +96,14 @@ export default function CreateAuctionPage() {
           throw new Error("Both end date and end time are required");
         }
         
+        console.log("Date parts:", { endDate, endTime });
+        
         // Create a valid date string and parse it
-        const combinedEndTime = new Date(`${endDate}T${endTime}:00`);
+        const dateTimeString = `${endDate}T${endTime}:00`;
+        console.log("Combined date-time string:", dateTimeString);
+        
+        const combinedEndTime = new Date(dateTimeString);
+        console.log("Parsed date object:", combinedEndTime);
         
         // Verify that the date is valid
         if (isNaN(combinedEndTime.getTime())) {
@@ -93,12 +113,24 @@ export default function CreateAuctionPage() {
         // Set current price to the starting price initially
         const currentPrice = data.startingPrice;
         
-        // Create the auction
-        const res = await apiRequest("POST", "/api/auctions", {
+        // Prepare the payload
+        const payload = {
           ...auctionData,
           currentPrice,
           endTime: combinedEndTime.toISOString(),
-        });
+        };
+        
+        console.log("API request payload:", payload);
+        
+        // Create the auction
+        const res = await apiRequest("POST", "/api/auctions", payload);
+        
+        // Log the response for debugging
+        if (!res.ok) {
+          const errorData = await res.json();
+          console.error("Server validation error:", errorData);
+          throw new Error(errorData.message || "Failed to create auction");
+        }
         
         return await res.json();
       } catch (error) {
@@ -124,6 +156,31 @@ export default function CreateAuctionPage() {
   });
 
   const onSubmit = (data: CreateAuctionFormData) => {
+    // Check if there are form validation errors
+    const formErrors = form.formState.errors;
+    if (Object.keys(formErrors).length > 0) {
+      console.log("Form validation errors:", formErrors);
+      toast({
+        title: "Validation Error",
+        description: "Please fix the form errors before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if the end date is in the future
+    const now = new Date();
+    const endDateTime = new Date(`${data.endDate}T${data.endTime}:00`);
+    
+    if (endDateTime <= now) {
+      toast({
+        title: "Invalid End Date/Time",
+        description: "The auction end time must be in the future.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     createAuctionMutation.mutate(data);
   };
 

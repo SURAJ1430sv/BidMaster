@@ -71,10 +71,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auctions", isAuthenticated, async (req, res) => {
     try {
+      console.log("Received auction data:", req.body);
+      
+      // Validate the endTime field is a valid date and in the future
+      if (req.body.endTime) {
+        const endTime = new Date(req.body.endTime);
+        
+        // Check if it's a valid date
+        if (isNaN(endTime.getTime())) {
+          return res.status(400).json({ 
+            message: "Invalid end time format", 
+            details: `Failed to parse '${req.body.endTime}' as a valid date` 
+          });
+        }
+        
+        // Check if the date is in the future
+        const now = new Date();
+        if (endTime <= now) {
+          return res.status(400).json({ 
+            message: "End time must be in the future", 
+            details: `End time ${endTime.toISOString()} is not in the future (current time: ${now.toISOString()})` 
+          });
+        }
+      }
+      
       const result = insertAuctionSchema.safeParse(req.body);
       
       if (!result.success) {
-        return res.status(400).json({ message: "Invalid auction data", errors: result.error.format() });
+        console.log("Validation error:", result.error.format());
+        return res.status(400).json({ 
+          message: "Invalid auction data", 
+          errors: result.error.format(),
+          receivedData: req.body
+        });
       }
       
       const auctionData = {
@@ -82,10 +111,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sellerId: req.user!.id // Non-null assertion because isAuthenticated middleware ensures req.user exists
       };
       
+      console.log("Creating auction with data:", auctionData);
+      
       const auction = await storage.createAuction(auctionData);
       res.status(201).json(auction);
     } catch (error) {
-      res.status(500).json({ message: "Failed to create auction" });
+      console.error("Error creating auction:", error);
+      res.status(500).json({ message: "Failed to create auction", error: String(error) });
     }
   });
 
