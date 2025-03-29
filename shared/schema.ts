@@ -59,10 +59,23 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
 });
 
-export const insertAuctionSchema = createInsertSchema(auctions).omit({
+// Create base schema from Drizzle ORM
+const baseAuctionSchema = createInsertSchema(auctions);
+
+// Modify the endTime field to accept string (ISO format)
+export const insertAuctionSchema = baseAuctionSchema.omit({
   id: true, 
   currentPrice: true,
   createdAt: true,
+}).extend({
+  // Override the endTime field to accept ISO string format
+  endTime: z.string().or(z.date())
+    .transform((val) => {
+      if (typeof val === 'string') {
+        return new Date(val);
+      }
+      return val;
+    }),
 });
 
 export const insertBidSchema = createInsertSchema(bids).omit({
