@@ -4,6 +4,7 @@ import Footer from "@/components/footer";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation } from "@tanstack/react-query";
 import { insertAuctionSchema, InsertAuction } from "@shared/schema";
+import { z } from "zod";
 import { 
   Card, 
   CardContent,
@@ -29,8 +30,8 @@ const createAuctionFormSchema = insertAuctionSchema.omit({
   endTime: true,
   sellerId: true 
 }).extend({
-  endDate: insertAuctionSchema.shape.endTime,
-  endTime: insertAuctionSchema.shape.endTime,
+  endDate: z.string().min(1, { message: "End date is required" }),
+  endTime: z.string().min(1, { message: "End time is required" }),
 });
 
 type CreateAuctionFormData = Omit<InsertAuction, "endTime" | "sellerId"> & {
@@ -72,17 +73,38 @@ export default function CreateAuctionPage() {
 
   const createAuctionMutation = useMutation({
     mutationFn: async (data: CreateAuctionFormData) => {
-      // Combine date and time to create a complete endTime
-      const { endDate, endTime, ...auctionData } = data;
-      const combinedEndTime = new Date(`${endDate}T${endTime}`);
-      
-      // Create the auction
-      const res = await apiRequest("POST", "/api/auctions", {
-        ...auctionData,
-        endTime: combinedEndTime.toISOString(),
-      });
-      
-      return await res.json();
+      try {
+        // Combine date and time to create a complete endTime
+        const { endDate, endTime, ...auctionData } = data;
+        
+        // Ensure both date and time are provided
+        if (!endDate || !endTime) {
+          throw new Error("Both end date and end time are required");
+        }
+        
+        // Create a valid date string and parse it
+        const combinedEndTime = new Date(`${endDate}T${endTime}:00`);
+        
+        // Verify that the date is valid
+        if (isNaN(combinedEndTime.getTime())) {
+          throw new Error("Invalid date or time format");
+        }
+        
+        // Set current price to the starting price initially
+        const currentPrice = data.startingPrice;
+        
+        // Create the auction
+        const res = await apiRequest("POST", "/api/auctions", {
+          ...auctionData,
+          currentPrice,
+          endTime: combinedEndTime.toISOString(),
+        });
+        
+        return await res.json();
+      } catch (error) {
+        console.error("Auction creation error:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auctions"] });
@@ -126,11 +148,16 @@ export default function CreateAuctionPage() {
                     <FormField
                       control={form.control}
                       name="title"
-                      render={({ field }) => (
+                      render={({ field: { value, onChange, ...fieldProps } }) => (
                         <FormItem>
                           <FormLabel>Title</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter a descriptive title" {...field} />
+                            <Input 
+                              placeholder="Enter a descriptive title" 
+                              {...fieldProps} 
+                              value={value || ""}
+                              onChange={(e) => onChange(e.target.value)}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -140,14 +167,16 @@ export default function CreateAuctionPage() {
                     <FormField
                       control={form.control}
                       name="description"
-                      render={({ field }) => (
+                      render={({ field: { value, onChange, ...fieldProps } }) => (
                         <FormItem>
                           <FormLabel>Description</FormLabel>
                           <FormControl>
                             <Textarea 
                               placeholder="Provide details about your item" 
                               className="min-h-[120px]" 
-                              {...field} 
+                              {...fieldProps} 
+                              value={value || ""}
+                              onChange={(e) => onChange(e.target.value)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -159,7 +188,7 @@ export default function CreateAuctionPage() {
                       <FormField
                         control={form.control}
                         name="startingPrice"
-                        render={({ field }) => (
+                        render={({ field: { value, onChange, ...fieldProps } }) => (
                           <FormItem>
                             <FormLabel>Starting Price ($)</FormLabel>
                             <FormControl>
@@ -168,8 +197,12 @@ export default function CreateAuctionPage() {
                                 min="0.01" 
                                 step="0.01" 
                                 placeholder="0.00" 
-                                {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                {...fieldProps}
+                                value={typeof value === 'number' ? value : ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  onChange(val ? parseFloat(val) : 0);
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -180,12 +213,12 @@ export default function CreateAuctionPage() {
                       <FormField
                         control={form.control}
                         name="category"
-                        render={({ field }) => (
+                        render={({ field: { value, onChange, ...fieldProps } }) => (
                           <FormItem>
                             <FormLabel>Category</FormLabel>
                             <Select 
-                              onValueChange={field.onChange} 
-                              defaultValue={field.value}
+                              onValueChange={onChange} 
+                              defaultValue={value || undefined}
                             >
                               <FormControl>
                                 <SelectTrigger>
@@ -209,11 +242,16 @@ export default function CreateAuctionPage() {
                     <FormField
                       control={form.control}
                       name="imageUrl"
-                      render={({ field }) => (
+                      render={({ field: { value, onChange, ...fieldProps } }) => (
                         <FormItem>
                           <FormLabel>Image URL</FormLabel>
                           <FormControl>
-                            <Input placeholder="https://example.com/image.jpg" {...field} />
+                            <Input 
+                              placeholder="https://example.com/image.jpg" 
+                              {...fieldProps} 
+                              value={value || ""}
+                              onChange={(e) => onChange(e.target.value)}
+                            />
                           </FormControl>
                           <FormDescription>
                             Enter a URL for the item image
@@ -227,11 +265,16 @@ export default function CreateAuctionPage() {
                       <FormField
                         control={form.control}
                         name="endDate"
-                        render={({ field }) => (
+                        render={({ field: { value, onChange, ...fieldProps } }) => (
                           <FormItem>
                             <FormLabel>End Date</FormLabel>
                             <FormControl>
-                              <Input type="date" {...field} />
+                              <Input 
+                                type="date" 
+                                {...fieldProps} 
+                                value={value || ""}
+                                onChange={(e) => onChange(e.target.value)}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -241,11 +284,16 @@ export default function CreateAuctionPage() {
                       <FormField
                         control={form.control}
                         name="endTime"
-                        render={({ field }) => (
+                        render={({ field: { value, onChange, ...fieldProps } }) => (
                           <FormItem>
                             <FormLabel>End Time</FormLabel>
                             <FormControl>
-                              <Input type="time" {...field} />
+                              <Input 
+                                type="time" 
+                                {...fieldProps} 
+                                value={value || ""}
+                                onChange={(e) => onChange(e.target.value)}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
