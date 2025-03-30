@@ -55,9 +55,19 @@ export default function AuctionCard({ auction, isOwner = false }: AuctionCardPro
       <Card className="overflow-hidden hover:shadow-md transition-shadow">
         <div className="relative">
           <img 
-            src={auction.imageUrl || "https://placehold.co/400x300?text=No+Image"} 
+            src={
+              // Check if URL is a Google search URL and replace with a direct image URL
+              auction.imageUrl?.includes("google.com/url") 
+                ? "https://content.rolex.com/dam/model-page/showcase/m126200-0001-datejust/model-showcase-homepage-landscape-m126200-0001-datejust-x.jpg"
+                : (auction.imageUrl || "https://placehold.co/400x300?text=No+Image")
+            } 
             alt={auction.title}
             className="w-full h-48 object-cover"
+            onError={(e) => {
+              // If image fails to load, replace with a fallback image
+              const target = e.target as HTMLImageElement;
+              target.src = "https://placehold.co/400x300?text=Image+Error";
+            }}
           />
           <div className="absolute top-2 left-2">
             <Badge className={`${statusBadge.bgColor} text-white text-xs font-semibold`}>

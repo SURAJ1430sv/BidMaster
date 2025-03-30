@@ -307,14 +307,14 @@ export default function CreateAuctionPage() {
                           <FormLabel>Image URL</FormLabel>
                           <FormControl>
                             <Input 
-                              placeholder="https://example.com/image.jpg" 
+                              placeholder="https://content.rolex.com/dam/model-page/showcase/m126200-0001-datejust/model-showcase-homepage-landscape-m126200-0001-datejust-x.jpg" 
                               {...fieldProps} 
                               value={value || ""}
                               onChange={(e) => onChange(e.target.value)}
                             />
                           </FormControl>
                           <FormDescription>
-                            Enter a URL for the item image
+                            Enter a direct URL to an image (avoid Google search URLs). Try using the Rolex example URL provided above for testing.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
