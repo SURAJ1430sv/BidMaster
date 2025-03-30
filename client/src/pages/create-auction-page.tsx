@@ -250,13 +250,13 @@ export default function CreateAuctionPage() {
                         name="startingPrice"
                         render={({ field: { value, onChange, ...fieldProps } }) => (
                           <FormItem>
-                            <FormLabel>Starting Price ($)</FormLabel>
+                            <FormLabel>Starting Price (₹)</FormLabel>
                             <FormControl>
                               <Input 
                                 type="number" 
-                                min="0.01" 
-                                step="0.01" 
-                                placeholder="0.00" 
+                                min="1" 
+                                step="1" 
+                                placeholder="0" 
                                 {...fieldProps}
                                 value={typeof value === 'number' ? value : ''}
                                 onChange={(e) => {

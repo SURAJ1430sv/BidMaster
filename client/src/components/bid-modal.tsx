@@ -29,11 +29,12 @@ export default function BidModal({ auction, onClose }: BidModalProps) {
   const [bidAmount, setBidAmount] = useState(auction.currentPrice + 1);
   const [agreeTerms, setAgreeTerms] = useState(false);
 
-  // Format currency
+  // Format currency (using Indian Rupees)
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'INR',
+      maximumFractionDigits: 0, // No decimal points for INR
     }).format(amount);
   };
 
@@ -134,12 +135,12 @@ export default function BidModal({ auction, onClose }: BidModalProps) {
         
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <Label htmlFor="bidAmount">Your Bid (USD)</Label>
+            <Label htmlFor="bidAmount">Your Bid (INR)</Label>
             <Input
               id="bidAmount"
               type="number"
               min={minBid}
-              step="0.01"
+              step="1" 
               value={bidAmount}
               onChange={handleBidAmountChange}
               className="text-right"
