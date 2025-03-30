@@ -124,6 +124,7 @@ export class MemStorage implements IStorage {
       ...insertAuction, 
       id, 
       currentPrice: insertAuction.startingPrice,
+      status: "active", // Explicitly set status to active
       createdAt: now 
     };
     this.auctions.set(id, auction);
