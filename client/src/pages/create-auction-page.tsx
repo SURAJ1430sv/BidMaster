@@ -118,6 +118,9 @@ export default function CreateAuctionPage() {
           ...auctionData,
           currentPrice,
           endTime: combinedEndTime.toISOString(),
+          // Note: This is a workaround for the testing-only scenario where we're 
+          // making the Create Auction page publicly accessible
+          sellerId: 1 
         };
         
         console.log("API request payload:", payload);

@@ -62,11 +62,12 @@ export const insertUserSchema = createInsertSchema(users).omit({
 // Create base schema from Drizzle ORM
 const baseAuctionSchema = createInsertSchema(auctions);
 
-// Modify the endTime field to accept string (ISO format)
+// Modify the endTime field to accept string (ISO format) and make sellerId optional
 export const insertAuctionSchema = baseAuctionSchema.omit({
   id: true, 
   currentPrice: true,
   createdAt: true,
+  sellerId: true, // We'll add this manually in the route handler
 }).extend({
   // Override the endTime field to accept ISO string format
   endTime: z.string().or(z.date())
