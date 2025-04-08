@@ -1,27 +1,19 @@
+import { useQuery } from "@tanstack/react-query";
+import { Feedback, User } from "@shared/schema";
+import { Loader2, MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
+
 export default function Testimonials() {
-  const testimonials = [
-    {
-      id: 1,
-      name: "Sarah M.",
-      image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-      rating: 5,
-      comment: "I've been using BidMaster for over a year now and have found some amazing deals. The bidding process is transparent and the payment system is secure. Highly recommend!"
-    },
-    {
-      id: 2,
-      name: "Robert J.",
-      image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-      rating: 4.5,
-      comment: "As a seller, I appreciate how easy it is to list items and track bids. The platform reaches a wide audience, and I've consistently received fair prices for my collectibles."
-    },
-    {
-      id: 3,
-      name: "Lisa T.",
-      image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-      rating: 5,
-      comment: "Customer support is exceptional. When I had an issue with a purchase, the team resolved it quickly. The notification system keeps me updated on all my active bids."
-    }
-  ];
+  // Fetch actual user feedback from the API
+  const { data: feedbacks, isLoading } = useQuery<Feedback[]>({
+    queryKey: ["/api/feedbacks"],
+  });
+
+  // Fetch users data to display names
+  const { data: users } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+  });
 
   // Generate star rating based on score
   const renderStars = (rating: number) => {
@@ -60,6 +52,20 @@ export default function Testimonials() {
     return stars;
   };
 
+  // Helper function to get user name by ID
+  const getUserName = (userId: number) => {
+    if (!users) return "User";
+    const user = users.find(u => u.id === userId);
+    return user ? user.username : "User";
+  };
+
+  // Use default avatar if user doesn't have a profile image
+  const getAvatarUrl = (userId: number) => {
+    if (!users) return "https://ui-avatars.com/api/?name=User";
+    const user = users.find(u => u.id === userId);
+    return user?.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.username || "User")}`;
+  };
+
   return (
     <section className="py-12 bg-neutral-50">
       <div className="container mx-auto px-4">
@@ -68,26 +74,48 @@ export default function Testimonials() {
           <p className="text-neutral-600 max-w-2xl mx-auto">Discover why thousands of buyers and sellers trust BidMaster.</p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {testimonials.map((testimonial) => (
-            <div key={testimonial.id} className="bg-white p-6 rounded-lg shadow-sm">
-              <div className="flex items-center mb-4">
-                <img 
-                  src={testimonial.image} 
-                  alt={testimonial.name} 
-                  className="w-12 h-12 rounded-full mr-4"
-                />
-                <div>
-                  <h4 className="font-semibold text-neutral-800">{testimonial.name}</h4>
-                  <div className="flex">
-                    {renderStars(testimonial.rating)}
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <>
+            {feedbacks && feedbacks.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {feedbacks.map((feedback) => (
+                  <div key={feedback.id} className="bg-white p-6 rounded-lg shadow-sm">
+                    <div className="flex items-center mb-4">
+                      <img 
+                        src={getAvatarUrl(feedback.fromUserId)} 
+                        alt={getUserName(feedback.fromUserId)} 
+                        className="w-12 h-12 rounded-full mr-4 object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(getUserName(feedback.fromUserId))}`;
+                        }}
+                      />
+                      <div>
+                        <h4 className="font-semibold text-neutral-800">{getUserName(feedback.fromUserId)}</h4>
+                        <div className="flex">
+                          {renderStars(feedback.rating)}
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-neutral-600">{feedback.comment || "Great experience with this auction!"}</p>
                   </div>
-                </div>
+                ))}
               </div>
-              <p className="text-neutral-600">{testimonial.comment}</p>
-            </div>
-          ))}
-        </div>
+            ) : (
+              <div className="text-center py-10 bg-white rounded-lg shadow-sm">
+                <MessageSquare className="mx-auto h-12 w-12 text-neutral-300 mb-4" />
+                <h3 className="text-lg font-medium text-neutral-800 mb-2">No Feedback Yet</h3>
+                <p className="text-neutral-600 mb-6">Be the first to share your experience with BidMaster!</p>
+                <Link href="/auctions">
+                  <Button>Browse Auctions</Button>
+                </Link>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </section>
   );

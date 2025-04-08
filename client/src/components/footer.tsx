@@ -132,7 +132,7 @@ export default function Footer() {
         </div>
         
         <div className="border-t border-neutral-700 mt-8 pt-8 flex flex-col md:flex-row justify-between">
-          <p className="text-neutral-400 text-sm">&copy; 2023 BidMaster. All rights reserved.</p>
+          <p className="text-neutral-400 text-sm">&copy; 2025 BidMaster. All rights reserved.</p>
           <div className="flex space-x-4 mt-4 md:mt-0">
             <div className="bg-white bg-opacity-10 rounded-md px-2 py-1 h-6">Visa</div>
             <div className="bg-white bg-opacity-10 rounded-md px-2 py-1 h-6">Mastercard</div>

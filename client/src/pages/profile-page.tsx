@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Auction, Bid, Feedback } from "@shared/schema";
 import { 
   Card, 
@@ -13,15 +13,22 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, CreditCard } from "lucide-react";
+import { Loader2, CreditCard, Upload, Camera, X } from "lucide-react";
 import AuctionCard from "@/components/auction-card";
 import PaymentModal from "@/components/payment-modal";
 import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function ProfilePage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Fetch user's auctions
   const { data: userAuctions, isLoading: auctionsLoading } = useQuery<Auction[]>({
@@ -89,6 +96,108 @@ export default function ProfilePage() {
     setSelectedAuction(auction);
     setShowPaymentModal(true);
   };
+  
+  // Photo upload functionality
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Check if the file is an image
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload an image file (JPEG, PNG, etc.)',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Check file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Please upload an image smaller than 2MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Create a preview URL
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    
+    // Upload the image
+    const formData = new FormData();
+    formData.append('profileImage', file);
+    
+    uploadProfileImage(formData);
+  };
+  
+  // Mutation for uploading profile image
+  const updateProfileMutation = useMutation({
+    mutationFn: async (imageUrl: string) => {
+      const res = await apiRequest("PATCH", "/api/user/profile", { profileImage: imageUrl });
+      return await res.json();
+    },
+    onSuccess: (updatedUser) => {
+      toast({
+        title: "Profile updated",
+        description: "Your profile photo has been updated successfully!",
+      });
+      queryClient.setQueryData(["/api/user"], updatedUser);
+      setUploadingPhoto(false);
+      setPreviewUrl(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setUploadingPhoto(false);
+      setPreviewUrl(null);
+    },
+  });
+  
+  // Upload to a service like Cloudinary, Imgur, etc. and get the URL
+  const uploadProfileImage = async (formData: FormData) => {
+    setUploadingPhoto(true);
+    
+    try {
+      // For demo purposes, we're using a placeholder URL
+      // In a real app, you would upload to a service and get back a URL
+      // const response = await fetch('https://api.cloudinary.com/v1_1/your-cloud-name/upload', {
+      //   method: 'POST',
+      //   body: formData,
+      // });
+      // const data = await response.json();
+      // const imageUrl = data.secure_url;
+      
+      // Demo: Using the previewUrl directly (in a real app, you'd use the URL from the upload service)
+      setTimeout(() => {
+        // This simulates an image URL from an upload service
+        const imageUrl = previewUrl || 'https://via.placeholder.com/150';
+        
+        // Call the mutation to update the user profile
+        updateProfileMutation.mutate(imageUrl);
+      }, 1500);
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload image. Please try again.",
+        variant: "destructive",
+      });
+      setUploadingPhoto(false);
+      setPreviewUrl(null);
+    }
+  };
+  
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
 
   // Format initials for avatar
   const getInitials = () => {
@@ -123,12 +232,38 @@ export default function ProfilePage() {
             {/* Profile Header */}
             <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
               <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-                <Avatar className="h-24 w-24">
-                  {user.profileImage ? (
-                    <AvatarImage src={user.profileImage} alt={user.username} />
-                  ) : null}
-                  <AvatarFallback className="text-xl">{getInitials()}</AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                  />
+                  
+                  <Avatar className="h-24 w-24">
+                    {previewUrl ? (
+                      <AvatarImage src={previewUrl} alt={user.username} />
+                    ) : user.profileImage ? (
+                      <AvatarImage src={user.profileImage} alt={user.username} />
+                    ) : null}
+                    <AvatarFallback className="text-xl">{getInitials()}</AvatarFallback>
+                  </Avatar>
+                  
+                  <Button 
+                    variant="outline"
+                    size="icon"
+                    className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-white border shadow-sm"
+                    onClick={triggerFileInput}
+                    disabled={uploadingPhoto}
+                  >
+                    {uploadingPhoto ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
                 
                 <div className="flex-grow text-center md:text-left">
                   <h1 className="text-2xl font-bold text-neutral-800">

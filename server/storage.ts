@@ -7,6 +7,7 @@ import {
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import * as fs from 'fs';
 
 const MemoryStore = createMemoryStore(session);
 
@@ -15,7 +16,9 @@ export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUsers(): Promise<Map<number, User>>;
   createUser(user: InsertUser): Promise<User>;
+  updateUserProfile(id: number, userData: Partial<User>): Promise<User | undefined>;
   
   // Auction operations
   getAuction(id: number): Promise<Auction | undefined>;
@@ -33,6 +36,7 @@ export interface IStorage {
   // Feedback operations
   getFeedback(id: number): Promise<Feedback | undefined>;
   getUserFeedbacks(userId: number): Promise<Feedback[]>;
+  getAllFeedbacks(): Promise<Feedback[]>;
   createFeedback(feedback: InsertFeedback): Promise<Feedback>;
   
   // Support ticket operations
@@ -41,7 +45,7 @@ export interface IStorage {
   createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
 
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Using 'any' for session store due to type compatibility issues
 }
 
 export class MemStorage implements IStorage {
@@ -50,7 +54,7 @@ export class MemStorage implements IStorage {
   private bids: Map<number, Bid>;
   private feedbacks: Map<number, Feedback>;
   private supportTickets: Map<number, SupportTicket>;
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Using 'any' for session store due to type compatibility issues
   
   private userId: number = 1;
   private auctionId: number = 1;
@@ -87,8 +91,6 @@ export class MemStorage implements IStorage {
   // Load data from JSON files
   private loadDataFromFiles() {
     try {
-      const fs = require('fs');
-      
       // Create data directory if it doesn't exist
       if (!fs.existsSync(this.DATA_DIR)) {
         fs.mkdirSync(this.DATA_DIR, { recursive: true });
@@ -166,8 +168,6 @@ export class MemStorage implements IStorage {
   // Save data to JSON files
   private saveDataToFiles() {
     try {
-      const fs = require('fs');
-      
       // Save counters
       const counters = {
         userId: this.userId,
@@ -208,6 +208,10 @@ export class MemStorage implements IStorage {
       (user) => user.username === username
     );
   }
+  
+  async getUsers(): Promise<Map<number, User>> {
+    return this.users;
+  }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userId++;
@@ -216,6 +220,27 @@ export class MemStorage implements IStorage {
     this.users.set(id, user);
     this.saveDataToFiles(); // Save changes to file
     return user;
+  }
+  
+  async updateUserProfile(id: number, userData: Partial<User>): Promise<User | undefined> {
+    const existingUser = this.users.get(id);
+    if (!existingUser) return undefined;
+    
+    // Only update allowed fields (e.g., profileImage, fullName)
+    // Don't allow updating sensitive data like password through this method
+    const allowedUpdates = ['profileImage', 'fullName'];
+    const filteredUpdates: Partial<User> = {};
+    
+    for (const key of allowedUpdates) {
+      if (key in userData) {
+        filteredUpdates[key as keyof User] = userData[key as keyof User];
+      }
+    }
+    
+    const updatedUser = { ...existingUser, ...filteredUpdates };
+    this.users.set(id, updatedUser);
+    this.saveDataToFiles(); // Save changes to file
+    return updatedUser;
   }
 
   // Auction methods
@@ -315,6 +340,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.feedbacks.values()).filter(
       feedback => feedback.toUserId === userId
     );
+  }
+  
+  async getAllFeedbacks(): Promise<Feedback[]> {
+    return Array.from(this.feedbacks.values());
   }
 
   async createFeedback(insertFeedback: InsertFeedback): Promise<Feedback> {

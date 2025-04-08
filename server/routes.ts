@@ -37,6 +37,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Setup authentication routes
   setupAuth(app);
+  
+  // Get all users (for display purposes)
+  app.get("/api/users", async (req, res) => {
+    try {
+      // Get all users but exclude sensitive data like passwords
+      const users = Array.from((await storage.getUsers()).values()).map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        profileImage: user.profileImage,
+        createdAt: user.createdAt
+      }));
+      res.status(200).json(users);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+  
+  // Get all feedbacks
+  app.get("/api/feedbacks", async (req, res) => {
+    try {
+      const feedbacks = await storage.getAllFeedbacks();
+      res.status(200).json(feedbacks);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch feedbacks" });
+    }
+  });
 
   // Auctions
   app.get("/api/auctions", async (req, res) => {
@@ -219,6 +247,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json(auctions);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch user auctions" });
+    }
+  });
+  
+  // Update user profile
+  app.patch("/api/user/profile", isAuthenticated, async (req, res) => {
+    try {
+      // Only allow certain fields to be updated
+      const allowedFields = ["profileImage", "fullName"];
+      const updates: Partial<User> = {};
+      
+      for (const field of allowedFields) {
+        if (field in req.body) {
+          updates[field as keyof User] = req.body[field];
+        }
+      }
+      
+      // Validate that at least one field is being updated
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ message: "No valid fields to update" });
+      }
+      
+      // Update the user profile
+      const updatedUser = await storage.updateUserProfile(req.user!.id, updates);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Return the updated user (exclude password)
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
     }
   });
 
