@@ -16,14 +16,20 @@ export default function HomePage() {
     queryKey: ["/api/auctions"],
   });
 
-  // Categories with icon names and counts (static data for now)
+  // Calculate actual category counts from auctions data
+  const getCategoryCount = (categoryName: string) => {
+    if (!auctions) return 0;
+    return auctions.filter(auction => auction.category === categoryName).length;
+  };
+  
+  // Categories with icon names
   const categories = [
-    { name: "Electronics", icon: "laptop", count: 825 },
-    { name: "Fashion", icon: "shirt", count: 614 },
-    { name: "Collectibles", icon: "gem", count: 518 },
-    { name: "Home & Garden", icon: "sofa", count: 412 },
-    { name: "Art", icon: "palette", count: 283 },
-    { name: "Vehicles", icon: "car", count: 156 },
+    { name: "Electronics", icon: "laptop", count: getCategoryCount("Electronics") },
+    { name: "Fashion", icon: "shirt", count: getCategoryCount("Fashion") },
+    { name: "Collectibles", icon: "gem", count: getCategoryCount("Collectibles") },
+    { name: "Home & Garden", icon: "sofa", count: getCategoryCount("Home & Garden") },
+    { name: "Art", icon: "palette", count: getCategoryCount("Art") },
+    { name: "Vehicles", icon: "car", count: getCategoryCount("Vehicles") },
   ];
 
   return (
