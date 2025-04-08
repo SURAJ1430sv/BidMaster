@@ -32,10 +32,13 @@ export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "bidmaster-secret-key",
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // Changed to true to save sessions for all visitors
     store: storage.sessionStore,
     cookie: {
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+      maxAge: 1000 * 60 * 60 * 24 * 30, // Extended to 30 days
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: 'lax'
     }
   };
 

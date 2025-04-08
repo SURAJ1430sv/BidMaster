@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import { Loader2, CreditCard } from "lucide-react";
 import AuctionCard from "@/components/auction-card";
 import PaymentModal from "@/components/payment-modal";
 import { format } from "date-fns";
@@ -34,13 +34,19 @@ export default function ProfilePage() {
     queryKey: ["/api/user/bids"],
     enabled: !!user,
   });
+  
+  // Fetch all auctions to cross-reference with bids
+  const { data: allAuctions, isLoading: allAuctionsLoading } = useQuery<Auction[]>({
+    queryKey: ["/api/auctions"],
+    enabled: !!user,
+  });
 
   // Helper to get unique auctions user has bid on
   const getBidAuctions = () => {
     if (!userBids || !userBids.length) return [];
     
     // Get unique auction IDs
-    const uniqueAuctionIds = [...new Set(userBids.map(bid => bid.auctionId))];
+    const uniqueAuctionIds = Array.from(new Set(userBids.map(bid => bid.auctionId)));
     
     // For each unique auction ID, get the highest bid made by the user
     return uniqueAuctionIds.map(auctionId => {
@@ -49,11 +55,34 @@ export default function ProfilePage() {
         prev.amount > current.amount ? prev : current
       );
       
+      // Find the full auction details
+      const auction = allAuctions?.find(a => a.id === auctionId);
+      
       return {
         auctionId,
-        highestBid
+        highestBid,
+        auction
       };
     });
+  };
+  
+  // Helper to get auctions the user has won
+  const getWonAuctions = () => {
+    if (!userBids || !userBids.length || !allAuctions || !allAuctions.length) return [];
+    
+    // Get all bid auctions
+    const bidAuctions = getBidAuctions();
+    
+    // Filter for completed auctions where user's highest bid matches the final price
+    return bidAuctions.filter(({ auction, highestBid }) => {
+      // Auction has ended
+      const hasEnded = auction?.endTime ? new Date(auction.endTime) < new Date() : false;
+      
+      // User's bid is the highest
+      const isWinner = auction?.currentPrice === highestBid.amount;
+      
+      return hasEnded && isWinner;
+    }).map(({ auction }) => auction).filter(Boolean) as Auction[];
   };
 
   const handlePayment = (auction: Auction) => {
@@ -218,9 +247,100 @@ export default function ProfilePage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-center py-12">
-                      <p className="text-neutral-600">You haven't won any auctions yet.</p>
-                    </div>
+                    {allAuctionsLoading || bidsLoading ? (
+                      <div className="flex justify-center py-12">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      </div>
+                    ) : (
+                      <>
+                        {getWonAuctions().length > 0 ? (
+                          <div className="space-y-6">
+                            {getWonAuctions().map(auction => (
+                              <div 
+                                key={auction.id}
+                                className="flex flex-col md:flex-row gap-6 p-6 bg-white border rounded-lg shadow-sm"
+                              >
+                                <div className="w-full md:w-1/4 max-w-[300px] mx-auto md:mx-0">
+                                  <div className="aspect-square rounded-md overflow-hidden bg-neutral-100">
+                                    {auction.imageUrl ? (
+                                      <img 
+                                        src={auction.imageUrl} 
+                                        alt={auction.title}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).src = 'https://placehold.co/300x300/e6e6e6/a6a6a6?text=No+Image';
+                                        }}
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center bg-neutral-100 text-neutral-400">
+                                        No Image
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                <div className="flex-grow">
+                                  <h3 className="text-xl font-semibold mb-2">{auction.title}</h3>
+                                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 mb-4">
+                                    <div>
+                                      <p className="text-sm text-neutral-500">Final Price</p>
+                                      <p className="font-medium text-primary">
+                                        {new Intl.NumberFormat('en-IN', {
+                                          style: 'currency',
+                                          currency: 'INR',
+                                          maximumFractionDigits: 0,
+                                        }).format(auction.currentPrice)}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-neutral-500">End Date</p>
+                                      <p className="font-medium">
+                                        {format(new Date(auction.endTime), 'dd MMM yyyy')}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-neutral-500">Category</p>
+                                      <p className="font-medium capitalize">{auction.category}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-neutral-500">Status</p>
+                                      <p className="font-medium">
+                                        <span className="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                                          Won
+                                        </span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex flex-wrap gap-3 mt-4">
+                                    <button
+                                      className="px-4 py-2 bg-primary text-white rounded-md font-medium flex items-center gap-2"
+                                      onClick={() => handlePayment(auction)}
+                                    >
+                                      <CreditCard className="h-4 w-4" />
+                                      Complete Payment
+                                    </button>
+                                    <a
+                                      href={`/auctions/${auction.id}`}
+                                      className="px-4 py-2 bg-white border border-neutral-200 text-neutral-700 rounded-md font-medium hover:bg-neutral-50"
+                                    >
+                                      View Details
+                                    </a>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12">
+                            <p className="text-neutral-600">You haven't won any auctions yet.</p>
+                            <a href="/auctions" className="text-primary hover:underline mt-2 inline-block">
+                              Browse active auctions
+                            </a>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>

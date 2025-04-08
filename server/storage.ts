@@ -57,16 +57,145 @@ export class MemStorage implements IStorage {
   private bidId: number = 1;
   private feedbackId: number = 1;
   private supportTicketId: number = 1;
+  
+  // File paths for persisting data
+  private DATA_DIR = './data';
+  private USERS_FILE = './data/users.json';
+  private AUCTIONS_FILE = './data/auctions.json';
+  private BIDS_FILE = './data/bids.json';
+  private FEEDBACKS_FILE = './data/feedbacks.json';
+  private TICKETS_FILE = './data/tickets.json';
+  private COUNTERS_FILE = './data/counters.json';
 
   constructor() {
+    // Initialize empty maps
     this.users = new Map();
     this.auctions = new Map();
     this.bids = new Map();
     this.feedbacks = new Map();
     this.supportTickets = new Map();
+    
+    // Setup session store
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // prune expired entries every 24h
     });
+    
+    // Load data from file if exists
+    this.loadDataFromFiles();
+  }
+  
+  // Load data from JSON files
+  private loadDataFromFiles() {
+    try {
+      const fs = require('fs');
+      
+      // Create data directory if it doesn't exist
+      if (!fs.existsSync(this.DATA_DIR)) {
+        fs.mkdirSync(this.DATA_DIR, { recursive: true });
+        console.log(`Created data directory: ${this.DATA_DIR}`);
+        // If directory didn't exist, return as there's no data to load
+        return;
+      }
+      
+      // Load counters
+      if (fs.existsSync(this.COUNTERS_FILE)) {
+        const counters = JSON.parse(fs.readFileSync(this.COUNTERS_FILE, 'utf8'));
+        this.userId = counters.userId || 1;
+        this.auctionId = counters.auctionId || 1;
+        this.bidId = counters.bidId || 1;
+        this.feedbackId = counters.feedbackId || 1;
+        this.supportTicketId = counters.supportTicketId || 1;
+        console.log('Loaded counters:', counters);
+      }
+      
+      // Load users
+      if (fs.existsSync(this.USERS_FILE)) {
+        const users = JSON.parse(fs.readFileSync(this.USERS_FILE, 'utf8'));
+        users.forEach((user: User) => {
+          this.users.set(user.id, user);
+        });
+        console.log(`Loaded ${this.users.size} users from storage`);
+      }
+      
+      // Load auctions
+      if (fs.existsSync(this.AUCTIONS_FILE)) {
+        const auctions = JSON.parse(fs.readFileSync(this.AUCTIONS_FILE, 'utf8'));
+        auctions.forEach((auction: Auction) => {
+          // Parse date strings back to Date objects
+          auction.endTime = new Date(auction.endTime);
+          auction.createdAt = new Date(auction.createdAt);
+          this.auctions.set(auction.id, auction);
+        });
+        console.log(`Loaded ${this.auctions.size} auctions from storage`);
+      }
+      
+      // Load bids
+      if (fs.existsSync(this.BIDS_FILE)) {
+        const bids = JSON.parse(fs.readFileSync(this.BIDS_FILE, 'utf8'));
+        bids.forEach((bid: Bid) => {
+          bid.createdAt = new Date(bid.createdAt);
+          this.bids.set(bid.id, bid);
+        });
+        console.log(`Loaded ${this.bids.size} bids from storage`);
+      }
+      
+      // Load feedbacks
+      if (fs.existsSync(this.FEEDBACKS_FILE)) {
+        const feedbacks = JSON.parse(fs.readFileSync(this.FEEDBACKS_FILE, 'utf8'));
+        feedbacks.forEach((feedback: Feedback) => {
+          feedback.createdAt = new Date(feedback.createdAt);
+          this.feedbacks.set(feedback.id, feedback);
+        });
+        console.log(`Loaded ${this.feedbacks.size} feedbacks from storage`);
+      }
+      
+      // Load support tickets
+      if (fs.existsSync(this.TICKETS_FILE)) {
+        const tickets = JSON.parse(fs.readFileSync(this.TICKETS_FILE, 'utf8'));
+        tickets.forEach((ticket: SupportTicket) => {
+          ticket.createdAt = new Date(ticket.createdAt);
+          this.supportTickets.set(ticket.id, ticket);
+        });
+        console.log(`Loaded ${this.supportTickets.size} support tickets from storage`);
+      }
+    } catch (error) {
+      console.error('Error loading data from files:', error);
+    }
+  }
+  
+  // Save data to JSON files
+  private saveDataToFiles() {
+    try {
+      const fs = require('fs');
+      
+      // Save counters
+      const counters = {
+        userId: this.userId,
+        auctionId: this.auctionId,
+        bidId: this.bidId,
+        feedbackId: this.feedbackId,
+        supportTicketId: this.supportTicketId
+      };
+      fs.writeFileSync(this.COUNTERS_FILE, JSON.stringify(counters, null, 2));
+      
+      // Save users
+      fs.writeFileSync(this.USERS_FILE, JSON.stringify(Array.from(this.users.values()), null, 2));
+      
+      // Save auctions
+      fs.writeFileSync(this.AUCTIONS_FILE, JSON.stringify(Array.from(this.auctions.values()), null, 2));
+      
+      // Save bids
+      fs.writeFileSync(this.BIDS_FILE, JSON.stringify(Array.from(this.bids.values()), null, 2));
+      
+      // Save feedbacks
+      fs.writeFileSync(this.FEEDBACKS_FILE, JSON.stringify(Array.from(this.feedbacks.values()), null, 2));
+      
+      // Save support tickets
+      fs.writeFileSync(this.TICKETS_FILE, JSON.stringify(Array.from(this.supportTickets.values()), null, 2));
+      
+    } catch (error) {
+      console.error('Error saving data to files:', error);
+    }
   }
 
   // User methods
@@ -85,6 +214,7 @@ export class MemStorage implements IStorage {
     const now = new Date();
     const user: User = { ...insertUser, id, createdAt: now };
     this.users.set(id, user);
+    this.saveDataToFiles(); // Save changes to file
     return user;
   }
 
@@ -128,6 +258,7 @@ export class MemStorage implements IStorage {
       createdAt: now 
     };
     this.auctions.set(id, auction);
+    this.saveDataToFiles(); // Save changes to file
     return auction;
   }
 
@@ -137,6 +268,7 @@ export class MemStorage implements IStorage {
     
     const updatedAuction = { ...existingAuction, ...auctionUpdate };
     this.auctions.set(id, updatedAuction);
+    this.saveDataToFiles(); // Save changes to file
     return updatedAuction;
   }
 
@@ -170,6 +302,7 @@ export class MemStorage implements IStorage {
       this.auctions.set(auction.id, auction);
     }
     
+    this.saveDataToFiles(); // Save changes to file
     return bid;
   }
 
@@ -189,6 +322,7 @@ export class MemStorage implements IStorage {
     const now = new Date();
     const feedback: Feedback = { ...insertFeedback, id, createdAt: now };
     this.feedbacks.set(id, feedback);
+    this.saveDataToFiles(); // Save changes to file
     return feedback;
   }
 
@@ -208,6 +342,7 @@ export class MemStorage implements IStorage {
     const now = new Date();
     const ticket: SupportTicket = { ...insertTicket, id, createdAt: now };
     this.supportTickets.set(id, ticket);
+    this.saveDataToFiles(); // Save changes to file
     return ticket;
   }
 }
