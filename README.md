@@ -69,7 +69,7 @@ Traditional auction sites often lack real-time interaction and modern security m
 | 🧾 Auction Details | ![Details](<img width="1727" height="809" alt="Screenshot 2025-10-22 231021" src="https://github.com/user-attachments/assets/17a5c9a8-65a0-4a9e-84e8-0e4ea32fc8e8" />)   |
 | 🧑‍💼 Support Panel   | ![Support](<img width="1917" height="856" alt="Screenshot 2025-03-31 140753" src="https://github.com/user-attachments/assets/2ca18951-3aae-4b23-b645-b295c26b1d0c" />)   |
 
-
+<img width="1898" height="910" alt="Screenshot 2025-03-31 135652" src="https://github.com/user-attachments/assets/88ca79c7-b500-47b7-9c69-83095b34007d" />
 ---
 
 ## 🛠️ Tech Stack
