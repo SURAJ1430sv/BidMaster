@@ -129,8 +129,7 @@ Make sure you have:
    Create a `.env` file inside the **server/** folder:
 
    ```env
-   MONGO_URI=your_mongodb_connection_string
-   JWT_SECRET=your_secret_key
+   DATABASE_URL="postgresql://postgres:(localhost)name:5432/BidMaster"
    PORT=5000
    ```
 
