@@ -1,9 +1,9 @@
 import { useState } from "react";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Auction, Bid } from "@shared/schema";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { 
   Card, 
   CardContent,
@@ -17,16 +17,22 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Clock, User, ShoppingBag, DollarSign, Info, Heart } from "lucide-react";
+import { Loader2, Clock, User, ShoppingBag, DollarSign, Info, Heart, Trash2, XCircle } from "lucide-react";
 import BidModal from "@/components/bid-modal";
 import { useAuth } from "@/hooks/use-auth";
 import { format, formatDistanceToNow } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function AuctionDetailPage() {
   const { id } = useParams();
+  const [, navigate] = useLocation();
   const auctionId = parseInt(id);
   const { user } = useAuth();
+  const { toast } = useToast();
   const [showBidModal, setShowBidModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const queryClient = useQueryClient();
 
   // Fetch auction details
   const { data: auction, isLoading: auctionLoading } = useQuery<Auction>({
@@ -38,6 +44,116 @@ export default function AuctionDetailPage() {
     queryKey: [`/api/auctions/${auctionId}/bids`],
     enabled: !!auction,
   });
+
+  // Close auction mutation
+  const closeAuctionMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/auctions/${auctionId}/close`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to close auction');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/auctions/${auctionId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auctions'] });
+      toast({
+        title: "Auction closed",
+        description: "The auction has been closed successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to close the auction. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete auction mutation
+  const deleteAuctionMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/auctions/${auctionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete auction');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/auctions'] });
+      toast({
+        title: "Auction deleted",
+        description: "The auction has been deleted successfully.",
+      });
+      navigate('/auctions');
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete the auction. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Close bid mutation
+  const closeBidMutation = useMutation({
+    mutationFn: async (bidId: number) => {
+      const response = await fetch(`/api/bids/${bidId}/close`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to close bid');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/auctions/${auctionId}/bids`] });
+      toast({
+        title: "Bid closed",
+        description: "Your bid has been closed successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to close the bid. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCloseAuction = () => {
+    closeAuctionMutation.mutate();
+  };
+
+  const handleDeleteAuction = () => {
+    deleteAuctionMutation.mutate();
+  };
+
+  const handleCloseBid = (bidId: number) => {
+    closeBidMutation.mutate(bidId);
+  };
 
   if (auctionLoading) {
     return (
@@ -193,9 +309,26 @@ export default function AuctionDetailPage() {
                   )}
                   
                   {user && user.id === auction.sellerId && (
-                    <p className="text-sm text-neutral-600 text-center mt-2">
-                      You cannot bid on your own auction
-                    </p>
+                    <div className="flex space-x-2">
+                      <Button 
+                        variant="destructive"
+                        onClick={() => setShowDeleteConfirm(true)}
+                        disabled={isEnded || auction.status === "cancelled"}
+                        className="flex items-center gap-2"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete Auction
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={handleCloseAuction}
+                        disabled={isEnded || auction.status === "cancelled"}
+                        className="flex items-center gap-2"
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Close Auction
+                      </Button>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -229,7 +362,24 @@ export default function AuctionDetailPage() {
                               </p>
                             </div>
                           </div>
-                          <p className="font-semibold">{formatCurrency(bid.amount)}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold">{formatCurrency(bid.amount)}</p>
+                            {user && user.id === bid.bidderId && bid.status === "active" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCloseBid(bid.id)}
+                                disabled={closeBidMutation.isPending}
+                                className="h-8 w-8 p-0"
+                              >
+                                {closeBidMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <XCircle className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -244,6 +394,26 @@ export default function AuctionDetailPage() {
       </main>
 
       <Footer />
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Auction</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this auction? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteAuction}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {/* Bid Modal */}
       {showBidModal && (

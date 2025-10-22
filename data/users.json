@@ -1,0 +1,29 @@
+[
+  {
+    "username": "Suraj",
+    "email": "suraj1430ss@gmail.com",
+    "password": "0a04e9058aad32531da9262636034bdd4b22e19e368c4166fd2a4b1bd7c27159a34b28b3d367b84072cb285c4b883d50bbf624d4dd53a5e803e036c3a194291e.cb7342fe5cb46b10191c8e901750a6e6",
+    "fullName": "Suraj",
+    "profileImage": "https://via.placeholder.com/150",
+    "id": 1,
+    "createdAt": "2025-04-08T14:59:26.900Z"
+  },
+  {
+    "username": "Khushi",
+    "email": "khushyad9464@gmail.com",
+    "password": "029678067d95211a91af30a629b2870963ab91887e43ac3d892fae7c9429458d5af23ba5802298f735c22239a9317e2d6599142d34d670741eaaf3d5f69689fc.55668d51d04fc4157875fb4787b329e9",
+    "fullName": "Khushi Yadav",
+    "profileImage": null,
+    "id": 2,
+    "createdAt": "2025-04-22T17:51:24.255Z"
+  },
+  {
+    "username": "Suraj24",
+    "email": "sv7800452@gmail.com",
+    "password": "7271e1f809d583b316841c4fcf951b1709104041bd66bbb94f6e12bfbe1b679581c68ff25732d75d2fa25848d8107faa939b39bef3c20966741a340316e82752.78eab90772b8da0b9c8127414dea88d6",
+    "fullName": "Suraj Deepak Vishwakarma",
+    "profileImage": null,
+    "id": 3,
+    "createdAt": "2025-10-13T16:03:52.399Z"
+  }
+]

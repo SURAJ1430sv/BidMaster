@@ -1,0 +1,86 @@
+[
+  {
+    "auctionId": 7,
+    "bidderId": 1,
+    "amount": 315000000,
+    "id": 1,
+    "createdAt": "2025-04-22T17:44:04.192Z"
+  },
+  {
+    "auctionId": 6,
+    "bidderId": 1,
+    "amount": 3660.3,
+    "id": 2,
+    "createdAt": "2025-04-22T17:47:58.084Z"
+  },
+  {
+    "auctionId": 5,
+    "bidderId": 1,
+    "amount": 9109.75,
+    "id": 3,
+    "createdAt": "2025-04-22T17:48:20.295Z"
+  },
+  {
+    "auctionId": 4,
+    "bidderId": 1,
+    "amount": 365399.95,
+    "id": 4,
+    "createdAt": "2025-04-22T17:48:40.435Z"
+  },
+  {
+    "auctionId": 4,
+    "bidderId": 2,
+    "amount": 383670.9475,
+    "id": 5,
+    "createdAt": "2025-04-22T17:52:07.231Z"
+  },
+  {
+    "auctionId": 5,
+    "bidderId": 2,
+    "amount": 9565.2375,
+    "id": 6,
+    "createdAt": "2025-04-22T17:52:36.806Z"
+  },
+  {
+    "auctionId": 6,
+    "bidderId": 2,
+    "amount": 3843.315,
+    "id": 7,
+    "createdAt": "2025-04-22T17:52:58.714Z"
+  },
+  {
+    "auctionId": 7,
+    "bidderId": 2,
+    "amount": 330750000,
+    "id": 8,
+    "createdAt": "2025-04-22T17:53:13.582Z"
+  },
+  {
+    "auctionId": 9,
+    "bidderId": 1,
+    "amount": 1575,
+    "id": 9,
+    "createdAt": "2025-04-23T09:16:23.434Z"
+  },
+  {
+    "auctionId": 9,
+    "bidderId": 2,
+    "amount": 1653.75,
+    "id": 10,
+    "createdAt": "2025-04-23T09:17:55.498Z"
+  },
+  {
+    "auctionId": 9,
+    "bidderId": 1,
+    "amount": 1736.4375,
+    "id": 11,
+    "createdAt": "2025-04-23T09:18:56.694Z"
+  },
+  {
+    "auctionId": 10,
+    "bidderId": 1,
+    "amount": 262500000,
+    "id": 12,
+    "createdAt": "2025-10-17T16:42:55.297Z"
+  }
+]

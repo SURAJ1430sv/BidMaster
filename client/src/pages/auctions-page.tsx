@@ -31,9 +31,9 @@ export default function AuctionsPage() {
   const queryString = queryParams.toString();
   const fullQueryKey = queryString ? `${queryKey}?${queryString}` : queryKey;
 
-  // Fetch auctions with filters
+  // Fetch auctions
   const { data: auctions, isLoading } = useQuery<Auction[]>({
-    queryKey: [fullQueryKey],
+    queryKey: ["/api/auctions"],
   });
 
   const handleFilterChange = (newFilters: { category?: string; search?: string }) => {

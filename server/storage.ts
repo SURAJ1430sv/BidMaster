@@ -22,16 +22,19 @@ export interface IStorage {
   
   // Auction operations
   getAuction(id: number): Promise<Auction | undefined>;
-  getAuctions(filter?: { category?: string; search?: string }): Promise<Auction[]>;
+  getAuctions(includeEnded?: boolean): Promise<Auction[]>;
   getUserAuctions(userId: number): Promise<Auction[]>;
   createAuction(auction: InsertAuction): Promise<Auction>;
   updateAuction(id: number, auction: Partial<Auction>): Promise<Auction | undefined>;
+  closeAuction(id: number, userId: number): Promise<Auction | undefined>;
+  deleteAuction(id: number, userId: number): Promise<boolean>;
   
   // Bid operations
   getBid(id: number): Promise<Bid | undefined>;
   getAuctionBids(auctionId: number): Promise<Bid[]>;
   getUserBids(userId: number): Promise<Bid[]>;
   createBid(bid: InsertBid): Promise<Bid>;
+  closeBid(bidId: number, userId: number): Promise<Bid | undefined>;
   
   // Feedback operations
   getFeedback(id: number): Promise<Feedback | undefined>;
@@ -248,22 +251,25 @@ export class MemStorage implements IStorage {
     return this.auctions.get(id);
   }
 
-  async getAuctions(filter?: { category?: string; search?: string }): Promise<Auction[]> {
-    let auctions = Array.from(this.auctions.values());
+  async getAuctions(includeEnded = false): Promise<Auction[]> {
+    const now = new Date();
+    const auctions = Array.from(this.auctions.values());
     
-    if (filter?.category) {
-      auctions = auctions.filter(auction => auction.category === filter.category);
+    // Update status of ended auctions
+    auctions.forEach(auction => {
+      if (auction.status === "active" && new Date(auction.endTime) <= now) {
+        auction.status = "ended";
+        this.auctions.set(auction.id, auction);
+      }
+    });
+    
+    // Save changes if any auctions were updated
+    if (auctions.some(auction => auction.status === "ended")) {
+      this.saveDataToFiles();
     }
     
-    if (filter?.search) {
-      const searchLower = filter.search.toLowerCase();
-      auctions = auctions.filter(auction => 
-        auction.title.toLowerCase().includes(searchLower) || 
-        auction.description.toLowerCase().includes(searchLower)
-      );
-    }
-    
-    return auctions;
+    // Filter out ended auctions unless explicitly requested
+    return includeEnded ? auctions : auctions.filter(auction => auction.status !== "ended");
   }
 
   async getUserAuctions(userId: number): Promise<Auction[]> {
@@ -295,6 +301,37 @@ export class MemStorage implements IStorage {
     this.auctions.set(id, updatedAuction);
     this.saveDataToFiles(); // Save changes to file
     return updatedAuction;
+  }
+
+  async closeAuction(id: number, userId: number): Promise<Auction | undefined> {
+    const auction = this.auctions.get(id);
+    
+    // Check if auction exists and belongs to the user
+    if (!auction || auction.sellerId !== userId) {
+      return undefined;
+    }
+    
+    // Update auction status to cancelled
+    const updatedAuction = { ...auction, status: "cancelled" };
+    this.auctions.set(id, updatedAuction);
+    this.saveDataToFiles();
+    
+    return updatedAuction;
+  }
+
+  async deleteAuction(id: number, userId: number): Promise<boolean> {
+    const auction = this.auctions.get(id);
+    
+    // Check if auction exists and belongs to the user
+    if (!auction || auction.sellerId !== userId) {
+      return false;
+    }
+    
+    // Delete the auction
+    this.auctions.delete(id);
+    this.saveDataToFiles();
+    
+    return true;
   }
 
   // Bid methods
@@ -329,6 +366,28 @@ export class MemStorage implements IStorage {
     
     this.saveDataToFiles(); // Save changes to file
     return bid;
+  }
+
+  async closeBid(bidId: number, userId: number): Promise<Bid | undefined> {
+    const bid = this.bids.get(bidId);
+    
+    // Check if bid exists and belongs to the user
+    if (!bid || bid.bidderId !== userId) {
+      return undefined;
+    }
+    
+    // Get the auction to check if it's still active
+    const auction = this.auctions.get(bid.auctionId);
+    if (!auction || auction.status !== "active") {
+      return undefined;
+    }
+    
+    // Mark the bid as closed
+    const updatedBid = { ...bid, status: "closed" };
+    this.bids.set(bidId, updatedBid);
+    this.saveDataToFiles();
+    
+    return updatedBid;
   }
 
   // Feedback methods

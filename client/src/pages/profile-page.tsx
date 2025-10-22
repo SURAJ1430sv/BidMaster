@@ -44,7 +44,7 @@ export default function ProfilePage() {
   
   // Fetch all auctions to cross-reference with bids
   const { data: allAuctions, isLoading: allAuctionsLoading } = useQuery<Auction[]>({
-    queryKey: ["/api/auctions"],
+    queryKey: ["/api/auctions?includeEnded=true"],
     enabled: !!user,
   });
 

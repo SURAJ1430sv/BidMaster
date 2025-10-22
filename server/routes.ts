@@ -69,13 +69,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auctions
   app.get("/api/auctions", async (req, res) => {
     try {
-      const { category, search } = req.query;
-      const filter = {
-        category: category as string | undefined,
-        search: search as string | undefined
-      };
-      
-      const auctions = await storage.getAuctions(filter);
+      const includeEnded = req.query.includeEnded === "true";
+      const auctions = await storage.getAuctions(includeEnded);
       res.status(200).json(auctions);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch auctions" });
@@ -342,6 +337,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json(tickets);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch support tickets" });
+    }
+  });
+
+  // Close an auction
+  app.post("/api/auctions/:id/close", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      const auction = await storage.closeAuction(id, userId);
+      
+      if (!auction) {
+        return res.status(404).json({ message: "Auction not found or unauthorized" });
+      }
+      
+      res.status(200).json(auction);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to close auction" });
+    }
+  });
+
+  // Delete an auction
+  app.delete("/api/auctions/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      const success = await storage.deleteAuction(id, userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Auction not found or unauthorized" });
+      }
+      
+      res.status(200).json({ message: "Auction deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete auction" });
+    }
+  });
+
+  // Close a bid
+  app.post("/api/bids/:id/close", isAuthenticated, async (req, res) => {
+    try {
+      const bidId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      const bid = await storage.closeBid(bidId, userId);
+      
+      if (!bid) {
+        return res.status(404).json({ message: "Bid not found or unauthorized" });
+      }
+      
+      res.status(200).json(bid);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to close bid" });
     }
   });
 
