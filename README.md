@@ -63,11 +63,11 @@ Traditional auction sites often lack real-time interaction and modern security m
 
 | Feature            | Screenshot                                                       |
 | ------------------ | ---------------------------------------------------------------- |
-| 🏠 Home Page       | ![Home]<img width="1898" height="910" alt="Screenshot 2025-03-31 135652" src="https://github.com/user-attachments/assets/88ca79c7-b500-47b7-9c69-83095b34007d" />     |
-| 💸 Bidding Product | ![Bidding](<img width="1560" height="785" alt="Screenshot 2025-04-12 112425" src="https://github.com/user-attachments/assets/d698baea-a9cf-4f3b-995b-93efe6604291" />)   |
-| 👤 User Dashboard  | ![Dashboard](<img width="1919" height="769" alt="Screenshot 2025-03-31 140555" src="https://github.com/user-attachments/assets/20824469-ccd3-4887-9240-168917606cd5" />) |
-| 🧾 Auction Details | ![Details](<img width="1727" height="809" alt="Screenshot 2025-10-22 231021" src="https://github.com/user-attachments/assets/17a5c9a8-65a0-4a9e-84e8-0e4ea32fc8e8" />)   |
-| 🧑‍💼 Support Panel   | ![Support](<img width="1917" height="856" alt="Screenshot 2025-03-31 140753" src="https://github.com/user-attachments/assets/2ca18951-3aae-4b23-b645-b295c26b1d0c" />)   |
+| 🏠 Home Page       | <img width="1898" height="910" alt="Screenshot 2025-03-31 135652" src="https://github.com/user-attachments/assets/88ca79c7-b500-47b7-9c69-83095b34007d" /> |
+| 💸 Bidding Product | <img width="1560" height="785" alt="Screenshot 2025-04-12 112425" src="https://github.com/user-attachments/assets/d698baea-a9cf-4f3b-995b-93efe6604291" /> |
+| 👤 User Dashboard  | <img width="1919" height="769" alt="Screenshot 2025-03-31 140555" src="https://github.com/user-attachments/assets/20824469-ccd3-4887-9240-168917606cd5" /> |
+| 🧾 Auction Details | <img width="1727" height="809" alt="Screenshot 2025-10-22 231021" src="https://github.com/user-attachments/assets/17a5c9a8-65a0-4a9e-84e8-0e4ea32fc8e8" /> |
+| 🧑‍💼 Support Panel   | <img width="1917" height="856" alt="Screenshot 2025-03-31 140753" src="https://github.com/user-attachments/assets/2ca18951-3aae-4b23-b645-b295c26b1d0c" /> |
 
 ---
 
